@@ -24,7 +24,7 @@ class Group(models.Model):
     members = models.ManyToManyField(User)
     messages = models.ManyToOneRel(field=Message, field_name='id', to=Message)
     created_at =  models.DateTimeField(auto_now_add=True)
-    created_by = models.OneToOneField(User, on_delete=models.CASCADE)
+    created_by = models.ManyToOneRel(field=User,field_name='id',to=User, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.created_by.username

@@ -4,8 +4,12 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.contrib import messages
 from .forms import SignUp, LogIn
 from django.views.decorators.csrf import csrf_exempt
-
-
+from rest_framework.views import APIView
+from .models import (Profile,User,Message,Group)
+from .serializers import (UserSerializer,ProfileSerializer,MessageSerializer,GroupSerializer)
+from rest_framework.permissions import IsAuthenticated,AllowAny
+from rest_framework.response import Response
+from rest_framework import status
 # Create your views here.
 
 
@@ -47,6 +51,45 @@ def Log_In(request):
 @csrf_exempt
 def Log_Out(request):
     if request.method == 'POST':
+        
         logout(request)
         return JsonResponse({'message': 'Logout successful'}, status=200)
     return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+class User_ViewSet(APIView):
+    permission_classes = [AllowAny,]
+
+    def get(self,request,*args,**kwargs):
+        pk = request.query_params.get('id')
+        if pk:
+            query = User.objects.get(pk=pk)
+            if query:
+                serializer = UserSerializer(query)
+                return Response(serializer.data,200)
+                
+            else:
+                 return Response({'message':'user not found'},403)
+        else:
+            query = User.objects.all()
+            serializer = UserSerializer(query,many=True)
+            return Response(serializer.data,200)
+        
+    def post(self,request,*args,**kwargs):
+        data = request.data
+        pk = kwargs['id']
+        if pk:
+            query = User.objects.get(pk=pk)
+            serializer = UserSerializer(query,data=data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({'message':'user updated successfully'},200)
+            return Response({'message':'invalid data provided'},status.HTTP_406_NOT_ACCEPTABLE)
+        else:
+            serializer = UserSerializer(data=data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({'message':'account created successfully'},200)
+            return Response({'message':'invalid data provided'},status.HTTP_406_NOT_ACCEPTABLE)
+            
+
+          
