@@ -1,45 +1,48 @@
-from django.shortcuts import render, redirect
-from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+from django.http import JsonResponse
+from django.contrib.auth import login, authenticate, logout
+from django.contrib.auth.forms import AuthenticationForm
 from django.contrib import messages
-from django.http import HttpResponse
+from .forms import SignUp, LogIn
+from django.views.decorators.csrf import csrf_exempt
 
-# Create your views here.
-# creating views here
-
-def sign_up(request) :
-    if request.method == 'POST' :
-        form = UserCreationForm(request.POST)
+@csrf_exempt
+def Sign_Up(request):
+    if request.method == 'POST':
+        form = SignUp(request.POST)
         if form.is_valid():
             form.save()
-            messages.success(request, 'Your account has been created successfully.')
-            return redirect('login')
-        
-    else :
-        form = UserCreationForm()
-    return render(request, {'form', form})
-
-def log_in(request) :
-    if request.method == 'POST':
-        form = AuthenticationForm(data=request.POST)
-        if form.is_valid():
-            user = form.get_user()
-            login(request, user)
-            return redirect('home')
-        
+            username = form.cleaned_data.get('username')
+            raw_password = form.cleaned_data.get('password1')
+            user = authenticate(username=username, password=raw_password)
+            if user is not None:
+                login(request, user)
+                return JsonResponse({'message': 'You\'ve successful sign up', 'user': username}, status=201)
+            else:
+                return JsonResponse({'error': 'Authentication failed'}, status=400)
         else:
-            form = AuthenticationForm()
-            return render(request, {'form': form})
-        
-    form = AuthenticationForm()
-    return render(request, {'form':form})
+            return JsonResponse({'errors': form.errors}, status=400)
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
 
+@csrf_exempt
+def Log_In(request):
+    if request.method == 'POST':
+        form = LogIn(request, data=request.POST)
+        if form.is_valid():
+            username = form.cleaned_data.get('username')
+            password = form.cleaned_data.get('password')
+            user = authenticate(username=username, password=password)
+            if user is not None:
+                login(request, user)
+                return JsonResponse({'message': 'Login successful', 'user': username}, status=200)
+            else:
+                return JsonResponse({'error': 'Invalid username or password'}, status=400)
+        else:
+            return JsonResponse({'errors': form.errors}, status=400)
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
 
-def log_out(request) :
+@csrf_exempt
+def Log_Out(request):
     if request.method == 'POST':
         logout(request)
-        return redirect('login')
-
-# home view for the app for now.
-def home(request):
-    return HttpResponse("hello there, your app is working pretty fine!!")
+        return JsonResponse({'message': 'Logout successful'}, status=200)
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
