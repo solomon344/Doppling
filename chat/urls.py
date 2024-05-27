@@ -2,10 +2,10 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path('',views.home,name='home'),
+    # path('',views.home,name='home'),
     
     # your extra routes here.
-    path('login',views.log_in,name="login"),
-    path('logout',views.log_out,name="logout"),
-    path('signup',views.sign_up,name="signup")
+    path('login',views.Log_In,name="login"),
+    path('logout',views.Log_Out,name="logout"),
+    path('signup',views.Sign_Up,name="signup")
 ]
