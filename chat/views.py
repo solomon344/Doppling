@@ -3,15 +3,29 @@ from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib import messages
 from .forms import SignUp, LogIn
-from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import csrf_exempt,ensure_csrf_cookie
 from rest_framework.views import APIView
-from .models import (Profile,User,Message,Group)
+from .models import (Profile,User,Message,Group,OTP)
 from .serializers import (UserSerializer,ProfileSerializer,MessageSerializer,GroupSerializer)
 from rest_framework.permissions import IsAuthenticated,AllowAny
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework_simplejwt.tokens import RefreshToken,AccessToken
+from random import choices
+from string import digits,punctuation,ascii_letters
+from .send_email import send_login_email_OTP
+from .Custom_Verifiers import Otp_Verify
+import json
+
+import os
+
+from django.shortcuts import render
+
 
 # Create your views here.
+
+def simple_home(request):
+    return render(request,'otp.html')
 
 
 @csrf_exempt
@@ -32,7 +46,7 @@ def Sign_Up(request):
             return JsonResponse({'errors': form.errors}, status=400)
     return JsonResponse({'error': 'Invalid request method'}, status=405)
 
-@csrf_exempt
+@ensure_csrf_cookie
 def Log_In(request):
     if request.method == 'POST':
         form = LogIn(request, data=request.POST)
@@ -57,8 +71,59 @@ def Log_Out(request):
         return JsonResponse({'message': 'Logout successful'}, status=200)
     return JsonResponse({'error': 'Invalid request method'}, status=405)
 
-class User_ViewSet(APIView):
+class APi_Login(APIView):
     permission_classes = [AllowAny,]
+    def post(self,request,*args,**kwargs):
+        email = request.data['email']
+        password = request.data['password']
+        user_ref = User.objects.get(email=email)
+
+        user = authenticate(request,username=user_ref.username,password=password)
+        
+        if user is not None:
+            otp_gen = ''.join(choices([i for i in digits],k=4))
+
+            OTP.objects.create(otp=otp_gen,email=email)
+            OTP.save()
+            try:
+                send_login_email_OTP(to=[email,],otp=otp_gen,subject='OTP')
+            except:
+                print(f'There was a problem sending otp em to {email}')
+
+            otp = {
+                'otp':otp_gen
+            }
+            
+
+              
+            
+            return Response(otp,status.HTTP_200_OK)
+        return Response({'message':'No user found with this email'},status.HTTP_404_NOT_FOUND)
+    
+
+class APi_Otp_Verify(APIView):
+    
+    def post(self,request,*args,**kwargs):
+        otp = request.data['otp']
+
+        if otp:
+            otp_verify = Otp_Verify(otp)
+            if otp_verify.is_valid():
+                gen_token = RefreshToken.for_user(otp_verify.get_user()),
+                token = {
+                    'access':str(gen_token.access_token),
+                    'refresh':str(gen_token)
+                }
+
+                return Response(token,status=status.HTTP_200_OK)
+            return Response({'message':'Invalid Token'},status.HTTP_404_NOT_FOUND)
+    
+
+    
+
+
+class User_ViewSet(APIView):
+    permission_classes = [IsAuthenticated,]
 
     def get(self,request,*args,**kwargs):
         pk = request.query_params.get('id')
@@ -91,6 +156,7 @@ class User_ViewSet(APIView):
                 serializer.save()
                 return Response({'message':'account created successfully'},200)
             return Response({'message':'invalid data provided'},status.HTTP_406_NOT_ACCEPTABLE)
-            
 
-          
+
+
+        

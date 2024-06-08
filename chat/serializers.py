@@ -1,5 +1,8 @@
 from rest_framework.serializers import ModelSerializer
+from rest_framework import serializers
+from rest_framework_simplejwt.tokens import Token
 from .models import (Message,Group,User,Profile)
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 
 # creating serializers for each model
@@ -27,3 +30,9 @@ class GroupSerializer(ModelSerializer):
     class Meta:
         model = Group
         fields = '__all__'
+
+# class Token_Custom_Serializer(TokenObtainPairSerializer):
+#     username_field = 'email'
+#     @classmethod
+#     def get_token(cls, user: user) -> Token:
+#         return super().get_token(user)

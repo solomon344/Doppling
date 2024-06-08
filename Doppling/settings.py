@@ -17,6 +17,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+SESSION_COOKIE_SAMESITE = None
+CSRF_TRUSTED_ORIGINS = ['http://localhost:5173',]
 
 # Application definition
 
@@ -30,7 +32,8 @@ INSTALLED_APPS = [
     'chat.apps.ChatConfig',
     'rest_framework',
     'corsheaders',
-    'rest_framework_simplejwt'
+    'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
 ]
 
 SIMPLE_JWT = {
@@ -76,11 +79,16 @@ SIMPLE_JWT = {
 
 # cors related configs
 CORS_ALLOWED_ORIGINS = [
-    'http://localhost:5173'
+    'http://localhost:5173',
+]
+
+CORS_ORIGIN_WHITELIST = [
+    'http://localhost:5173',
 ]
 
 CORS_ALLOWED_HEADERS = [
-    *default_headers
+    *default_headers,
+    
 ]
 
 CORS_ALLOWED_METHODS =  [
@@ -106,7 +114,7 @@ ROOT_URLCONF = 'Doppling.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR/'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -172,10 +180,28 @@ REST_FRAMEWORK = {
     ]
 }
 
+import os
+
+# Email Settings
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_HOST_USER = os.environ.get('USER_EMAIL')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_PASSWORD')
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_USE_SSL = False
+
+
+
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
+
 STATIC_URL = 'static/'
+MEDIA_ROOT =  os.path.join(BASE_DIR,'media')
+MEDIA_URL = 'media/'
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
